@@ -47,6 +47,7 @@ Type `help` inside to see all commands. Type `exit` to quit.
 
 ```bash
 mkdir -p ~/.local/bin
+chmod +x ~/Friday/friday
 ln -sf ~/Friday/friday ~/.local/bin/friday
 ```
 
