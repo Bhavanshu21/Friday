@@ -224,8 +224,8 @@ def main():
 
     def resolve(text):
         """
-        Pick a command. Returns (cmd, params), ("chat", text) for a plain
-        brain reply, or (None, None) when nothing matches.
+        Pick a command. Returns (cmd, params), (("chat", text), None) for a
+        plain brain reply, or (None, None) when nothing matches.
         """
         if brain is not None:
             kind, a, b = brain.choose(text, REGISTRY, history)

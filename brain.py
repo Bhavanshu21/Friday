@@ -106,10 +106,10 @@ class Brain:
     # ------------------------------------------------------------------ choose
     def choose(self, user_text, registry, history):
         """
-        Ask the model. Returns one of:
-          ("tool", name, args)   — run registry[name] with args
-          ("chat", text)         — plain reply, no tool
-          ("unavailable", None)  — Ollama unreachable; caller falls back
+        Ask the model. Always returns a 3-tuple:
+          ("tool", name, args)        — run registry[name] with args
+          ("chat", text, None)        — plain reply, no tool
+          ("unavailable", None, None) — Ollama unreachable; caller falls back
         history: list of {"role", "content"} (intents only, never outputs).
         """
         tools = registry_to_tools(registry)
@@ -123,7 +123,7 @@ class Brain:
         try:
             resp = self._post("/api/chat", payload)
         except Exception:
-            return ("unavailable", None)
+            return ("unavailable", None, None)
 
         msg = resp.get("message", {}) or {}
         calls = msg.get("tool_calls") or []
@@ -134,6 +134,6 @@ class Brain:
             if name in registry and isinstance(args, dict):
                 return ("tool", name, args)
             return ("chat", f"I reached for an unknown tool ({name!r}) — "
-                            "refusing to run it.")
+                            "refusing to run it.", None)
         content = (msg.get("content") or "").strip()
-        return ("chat", content if content else "...")
+        return ("chat", content if content else "...", None)
