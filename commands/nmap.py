@@ -119,10 +119,123 @@ def _sweep(params):
     return run(["nmap", "-sn", t], timeout=300)
 
 
+def _syn(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("syn")
+    print(f"SYN stealth scan of {t} (top 1000 ports, needs sudo)...")
+    return run(["sudo", "nmap", "-sS", t], timeout=300)
+
+
+def _connect(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("connect")
+    print(f"TCP connect scan of {t} (top 1000 ports, no root needed)...")
+    return run(["nmap", "-sT", t], timeout=300)
+
+
+def _aggressive(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("aggressive")
+    print(f"Aggressive scan of {t} (OS + versions + scripts + traceroute, "
+          f"needs sudo). This takes a while...")
+    return run(["sudo", "nmap", "-A", t], timeout=900)
+
+
+def _version(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("version")
+    print(f"Version detection on {t} (top 1000 ports)...")
+    return run(["nmap", "-sV", t], timeout=600)
+
+
+def _valid_ports(p):
+    if not p or len(p) > 200 or not re.match(r"^[\d,\-]+$", p):
+        return False
+    for part in p.split(","):
+        if "-" in part:
+            a, b = part.split("-", 1)
+            if not (a.isdigit() and b.isdigit() and 1 <= int(a) <= int(b) <= 65535):
+                return False
+        elif not (part.isdigit() and 1 <= int(part) <= 65535):
+            return False
+    return True
+
+
+def _ports(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("ports")
+    p = (params.get("ports") or "").strip()
+    if not _valid_ports(p):
+        return ("Usage: nmap ports <target> <ports> — ports like 80,443 "
+                "or 1-1000. E.g. 'nmap ports 192.168.1.5 80,443,8080'.")
+    print(f"Scanning ports {p} on {t}...")
+    return run(["nmap", "-p", p, t], timeout=300)
+
+
+def _valid_script(s):
+    return bool(s) and len(s) <= 64 and re.match(r"^[A-Za-z0-9_.\-]+$", s)
+
+
+def _script(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("script")
+    s = (params.get("script") or "").strip()
+    if not _valid_script(s):
+        return ("Usage: nmap script <target> <script> — e.g. "
+                "'nmap script 192.168.1.5 http-title'.")
+    print(f"Running NSE script '{s}' against {t}...")
+    return run(["nmap", "--script", s, t], timeout=600)
+
+
+def _list(params):
+    g = _guard()
+    if g:
+        return g
+    t = _target(params)
+    if not t:
+        return _usage("list")
+    print(f"List scan of {t} (DNS enumeration, no packets sent)...")
+    return run(["nmap", "-sL", t], timeout=120)
+
+
 _TARGET_PATTERN = r"(\S+)\s*$"
 _PARAMS = {"type": "OBJECT",
            "properties": {"target": {"type": "STRING",
                                      "description": "IP, CIDR range, or hostname."}}}
+_PORTS_PARAMS = {"type": "OBJECT",
+                 "properties": {"target": {"type": "STRING",
+                                           "description": "IP, CIDR range, or hostname."},
+                                "ports": {"type": "STRING",
+                                          "description": "Port list like 80,443 or 1-1000."}}}
+_SCRIPT_PARAMS = {"type": "OBJECT",
+                  "properties": {"target": {"type": "STRING",
+                                            "description": "IP, CIDR range, or hostname."},
+                                 "script": {"type": "STRING",
+                                            "description": "NSE script name, e.g. http-title."}}}
 
 TOOLS = [
     {"name": "nmap_quick",
@@ -170,4 +283,50 @@ TOOLS = [
      "arg_patterns": {"target": _TARGET_PATTERN},
      "parameters": _PARAMS,
      "handler": _sweep},
+    {"name": "nmap_syn",
+     "description": "nmap SYN stealth scan, top 1000 ports (needs sudo). Usage: nmap syn <target>.",
+     "triggers": ["nmap syn", "syn scan", "stealth scan", "syn stealth"],
+     "arg_patterns": {"target": _TARGET_PATTERN},
+     "parameters": _PARAMS,
+     "handler": _syn},
+    {"name": "nmap_connect",
+     "description": "nmap TCP connect scan, top 1000 ports (no root needed). Usage: nmap connect <target>.",
+     "triggers": ["nmap connect", "connect scan", "tcp connect scan"],
+     "arg_patterns": {"target": _TARGET_PATTERN},
+     "parameters": _PARAMS,
+     "handler": _connect},
+    {"name": "nmap_aggressive",
+     "description": "nmap aggressive scan: OS + versions + scripts + traceroute (needs sudo). Usage: nmap aggressive <target>.",
+     "triggers": ["nmap aggressive", "aggressive scan", "aggressive nmap"],
+     "arg_patterns": {"target": _TARGET_PATTERN},
+     "parameters": _PARAMS,
+     "handler": _aggressive},
+    {"name": "nmap_version",
+     "description": "nmap version detection only, top 1000 ports. Usage: nmap version <target>.",
+     "triggers": ["nmap version", "version scan", "detect versions",
+                  "service version scan"],
+     "arg_patterns": {"target": _TARGET_PATTERN},
+     "parameters": _PARAMS,
+     "handler": _version},
+    {"name": "nmap_ports",
+     "description": "nmap scan of specific ports. Usage: nmap ports <target> <ports> (e.g. 80,443 or 1-1000).",
+     "triggers": ["nmap ports", "scan specific ports", "custom port scan",
+                  "scan these ports"],
+     "arg_patterns": {"target": r"ports\s+(\S+)",
+                      "ports": _TARGET_PATTERN},
+     "parameters": _PORTS_PARAMS,
+     "handler": _ports},
+    {"name": "nmap_script",
+     "description": "nmap with a specific NSE script. Usage: nmap script <target> <script> (e.g. http-title).",
+     "triggers": ["nmap script", "nse script", "run nmap script"],
+     "arg_patterns": {"target": r"script\s+(\S+)",
+                      "script": _TARGET_PATTERN},
+     "parameters": _SCRIPT_PARAMS,
+     "handler": _script},
+    {"name": "nmap_list",
+     "description": "nmap list scan: DNS enumerate targets without scanning. Usage: nmap list <target>.",
+     "triggers": ["nmap list", "list scan", "dns enumerate"],
+     "arg_patterns": {"target": _TARGET_PATTERN},
+     "parameters": _PARAMS,
+     "handler": _list},
 ]

@@ -16,8 +16,9 @@ jarvis/
 │   │                  # reboot, tail <log>, service <name> <action>
 │   ├── network.py     # ip, internet, ports, processes, wifi,
 │   │                  # ping <host>, traceroute <host>, lookup <domain>
-│   ├── nmap.py        # 7 scan profiles: quick, standard, full, os, udp,
-│   │                  # vuln, sweep — all with validated targets
+│   ├── nmap.py        # 14 scan profiles: quick, standard, full, os, udp,
+│   │                  # vuln, sweep, syn, connect, aggressive, version,
+│   │                  # ports, script, list — all with validated targets
 │   ├── metasploit.py  # msf version, msf search <term>, msf info <module>
 │   ├── burp.py        # burp start / status / stop (lifecycle)
 │   ├── workflows.py   # health check (composite of status+disk+memory+updates)
@@ -70,7 +71,7 @@ status + disk + memory + pending updates in one report. Handlers that
 declare `ctx` receive `{"registry", "context"}`.
 
 **Pentest tools.**
-- `nmap <quick|standard|full|os|udp|vuln> <target>`, `nmap sweep <subnet>`
+- `nmap <quick|standard|full|os|udp|vuln|syn|connect|aggressive|version|ports|script|list> <target>`, `nmap sweep <subnet>`
   — targets are strictly validated (IPv4/CIDR/hostname); some profiles
   need sudo and warn that they're slow.
 - `msf search <term>`, `msf info <module path>`, `msf version` —
