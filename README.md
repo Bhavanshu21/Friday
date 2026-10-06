@@ -1,0 +1,124 @@
+# JARVIS — Phase 2a: Deeper text (Kali VM assistant)
+
+A personal command assistant that maps what you type to a **fixed allowlist**
+of pre-approved system commands. Nothing else can execute. Ever.
+
+## Layout
+
+```
+jarvis/
+├── jarvis.py          # entry point: loop, intent matching, dispatch, help
+├── common.py          # safe subprocess runner, logging, user detection
+├── loader.py          # auto-discovers commands/*.py at startup
+├── context.py         # short-term memory: last runs, for "again"/recall
+├── commands/
+│   ├── system.py      # status, disk, memory, uptime, kernel, date, whoami,
+│   │                  # reboot, tail <log>, service <name> <action>
+│   ├── network.py     # ip, internet, ports, processes, wifi,
+│   │                  # ping <host>, traceroute <host>, lookup <domain>
+│   ├── nmap.py        # 7 scan profiles: quick, standard, full, os, udp,
+│   │                  # vuln, sweep — all with validated targets
+│   ├── metasploit.py  # msf version, msf search <term>, msf info <module>
+│   ├── burp.py        # burp start / status / stop (lifecycle)
+│   ├── workflows.py   # health check (composite of status+disk+memory+updates)
+│   ├── packages.py    # update, packages, usb
+│   └── fun.py         # greeting, joke, clear
+└── README.md
+```
+
+## Get it onto the VM
+
+Built for your Kali VM (user `arise`).
+
+1. Copy the whole `jarvis` folder into the VM — shared folder, `scp`, or unzip.
+2. Run it from inside the folder:
+   ```bash
+   cd jarvis
+   python3 jarvis.py
+   ```
+   No dependencies beyond Python 3 (standard library only).
+   Optional tools it can drive if installed: `nmap`, `msfconsole`, `burpsuite`,
+   `traceroute`, `dig`.
+
+Type `help` inside to see all commands. Type `exit` to quit.
+
+## What's new in Phase 2a
+
+**Parameterized commands.** Commands declare `arg_patterns` (regex per
+argument); the dispatcher extracts them and passes a `params` dict to
+handlers that ask for it. Old no-arg handlers work unchanged.
+
+```python
+TOOLS = [{
+    "name": "ping",
+    "description": "Ping a host 4 times. Usage: ping <host>.",
+    "triggers": ["ping"],
+    "arg_patterns": {"host": r"ping\s+([A-Za-z0-9.\-]+)"},
+    "parameters": {"type": "OBJECT",
+                   "properties": {"host": {"type": "STRING"}}},
+    "handler": _ping,          # def _ping(params): ...
+}]
+```
+
+**Short-term memory.** The last 10 runs are kept in memory: `again` /
+`repeat` re-runs the last command, and JARVIS can recall things like
+the last IP address it printed.
+
+**Composite workflows.** `commands/workflows.py` holds commands that call
+other registered commands and combine results — `health check` runs
+status + disk + memory + pending updates in one report. Handlers that
+declare `ctx` receive `{"registry", "context"}`.
+
+**Pentest tools.**
+- `nmap <quick|standard|full|os|udp|vuln> <target>`, `nmap sweep <subnet>`
+  — targets are strictly validated (IPv4/CIDR/hostname); some profiles
+  need sudo and warn that they're slow.
+- `msf search <term>`, `msf info <module path>`, `msf version` —
+  non-interactive via `msfconsole -x`. Interactive exploit sessions stay
+  in msfconsole itself; JARVIS finds the module, you run it.
+- `burp start` / `burp status` / `burp stop` — Burp is GUI-driven, so
+  JARVIS manages its lifecycle rather than its scans.
+
+## How it works
+
+**Adding a command = one TOOL dict** (see `jarvis.py` header for the full
+template). Restart JARVIS — nothing else changes. A file with a syntax
+error, a bad regex, or a duplicate name is logged and skipped; it can
+never break the other commands.
+
+**Matching:** longest trigger wins, ties break by earliest position, so
+`service ssh restart` hits `service` (not reboot) and `nmap ping sweep`
+hits the sweep (not `ping`).
+
+**Why both `description` and `triggers`?** Keywords match today
+(`triggers`); Phase 3 hands `name` + `description` + `parameters` to a
+local LLM for function calling — the same shape every LLM tool API uses.
+The registry serves both brains, so the upgrade won't need restructuring.
+
+## Safety design
+
+1. **Allowlist only** — the registry is the entire set of runnable things.
+2. **No `shell=True` anywhere** — argument arrays only, no shell to inject into.
+3. **Timeouts** on every command (longer for slow scans).
+4. **Destructive commands ask first** — `reboot` needs a typed YES.
+5. **Arguments are validated** — nmap targets, msf terms, service names
+   and log names are pattern-checked before use; raw input never reaches
+   a subprocess unfiltered. `tail` can only read 4 named logs.
+6. **Audit trail** — every run (and every rejected input) goes to
+   `~/.jarvis/jarvis.log`.
+
+## Deliberately left out
+
+- **No cloud LLM / API keys** — fully offline by design.
+- **No GUI/avatar** — it's a terminal tool for a VM.
+- **No undo stack yet** — arrives with the first file-changing command.
+
+## Roadmap
+
+- **Phase 2b — voice**: faster-whisper (STT) + Piper (TTS), push-to-talk.
+  Mic via VirtualBox audio passthrough. The registry doesn't change —
+  voice just replaces the keyboard.
+- **Phase 3 — smarter brain**: local LLM (Ollama, ~3B fits your 9.7GB VM)
+  picks from this same registry via the TOOL dicts instead of keyword
+  matching. The allowlist stays; only the matcher gets smarter. That's
+  the security boundary — it never moves.
