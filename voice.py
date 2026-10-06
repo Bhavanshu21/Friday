@@ -92,12 +92,17 @@ class VoiceIO:
     def listen(self):
         """
         Push-to-talk: Enter starts recording, Enter stops it.
-        Returns the transcribed text ("" if nothing usable was said).
+        Or just TYPE a command at the prompt to skip the mic entirely.
+        Returns the transcribed/typed text ("" if nothing usable was said).
         """
+        typed = input("Press Enter and speak (Enter again to stop), "
+                      "or type a command... ").strip()
+        if typed:
+            return typed  # text fallback — no mic needed
+
         sd = _require("sounddevice", "sounddevice", "libportaudio2")
         np = _require("numpy", "numpy")
 
-        input("Press Enter and speak (Enter again to stop)... ")
         print("Recording... press Enter to stop.")
         frames, stop = [], threading.Event()
 
