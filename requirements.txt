@@ -1,4 +1,4 @@
-# JARVIS requirements — every pip-installable dependency for all modes.
+# FRIDAY requirements — every pip-installable dependency for all modes.
 # Voice mode: faster-whisper (offline STT), piper-tts (offline TTS),
 #   sounddevice (microphone capture; pulls in numpy).
 # Brain mode (Ollama) needs NO pip packages — install Ollama separately:

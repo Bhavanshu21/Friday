@@ -1,5 +1,5 @@
 """
-JARVIS Phase 2a — short-term conversation memory.
+FRIDAY Phase 2a — short-term conversation memory.
 
 Keeps the last N command runs (command name, raw input, extracted params,
 result text) so the assistant can do "again" (re-run) and "recall"

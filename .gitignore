@@ -9,8 +9,8 @@ build/
 venv/
 .env
 
-# JARVIS runtime
-.jarvis/
+# FRIDAY runtime
+.friday/
 
 # OS / editor
 .DS_Store

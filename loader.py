@@ -1,5 +1,5 @@
 """
-Command auto-discovery — the Mark-LV pattern, adapted for JARVIS.
+Command auto-discovery — the Mark-LV pattern, adapted for FRIDAY.
 
 A command file is any commands/*.py (no leading underscore) exposing either:
     TOOL  = {...}        # a single command

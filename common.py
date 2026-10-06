@@ -1,5 +1,5 @@
 """
-Shared helpers for JARVIS commands.
+Shared helpers for FRIDAY commands.
 
 Everything a command file needs: safe subprocess execution, logging,
 user detection, tool availability checks. No dependencies beyond stdlib.
@@ -9,8 +9,25 @@ import shutil
 import os
 import datetime
 
-LOG_DIR = os.path.expanduser("~/.jarvis")
-LOG_FILE = os.path.join(LOG_DIR, "jarvis.log")
+
+def data_dir():
+    """
+    ~/.friday — migrated from ~/.jarvis on first run so downloaded
+    models and logs survive the rename.
+    """
+    new = os.path.expanduser("~/.friday")
+    old = os.path.expanduser("~/.jarvis")
+    if not os.path.exists(new) and os.path.exists(old):
+        try:
+            os.rename(old, new)
+        except OSError:
+            pass
+    os.makedirs(new, exist_ok=True)
+    return new
+
+
+LOG_DIR = data_dir()
+LOG_FILE = os.path.join(LOG_DIR, "friday.log")
 
 
 def log(action):

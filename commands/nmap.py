@@ -1,6 +1,6 @@
 """
 nmap scan profiles. Each is a pre-approved scan shape with a validated
-target — the user picks the profile, JARVIS fills in the flags.
+target — the user picks the profile, FRIDAY fills in the flags.
 
 Targets must be an IPv4 address, CIDR range, 'localhost', or a dotted
 hostname. Anything else is rejected before nmap ever sees it.

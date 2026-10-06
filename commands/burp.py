@@ -2,7 +2,7 @@
 Burp Suite lifecycle management.
 
 Burp is a GUI tool — there is no meaningful way to drive its scans from
-a terminal assistant (that needs Burp Professional's API). So JARVIS
+a terminal assistant (that needs Burp Professional's API). So FRIDAY
 manages its lifecycle: start it, check if it's running, stop it.
 """
 from common import run, need, launch_detached

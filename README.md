@@ -1,4 +1,4 @@
-# JARVIS — Phase 2a: Deeper text (Kali VM assistant)
+# FRIDAY — offline AI assistant for Kali Linux
 
 A personal command assistant that maps what you type to a **fixed allowlist**
 of pre-approved system commands. Nothing else can execute. Ever.
@@ -6,8 +6,8 @@ of pre-approved system commands. Nothing else can execute. Ever.
 ## Layout
 
 ```
-jarvis/
-├── jarvis.py          # entry point: loop, intent matching, dispatch, help
+Friday/
+├── friday.py          # entry point: loop, intent matching, dispatch, help
 ├── common.py          # safe subprocess runner, logging, user detection
 ├── loader.py          # auto-discovers commands/*.py at startup
 ├── context.py         # short-term memory: last runs, for "again"/recall
@@ -31,11 +31,11 @@ jarvis/
 
 Built for your Kali VM (user `arise`).
 
-1. Copy the whole `jarvis` folder into the VM — shared folder, `scp`, or unzip.
+1. Clone the repo into the VM: `git clone https://github.com/Bhavanshu21/Friday.git`
 2. Run it from inside the folder:
    ```bash
-   cd jarvis
-   python3 jarvis.py
+   cd Friday
+   python3 friday.py
    ```
    No dependencies beyond Python 3 (standard library only).
    Optional tools it can drive if installed: `nmap`, `msfconsole`, `burpsuite`,
@@ -62,7 +62,7 @@ TOOLS = [{
 ```
 
 **Short-term memory.** The last 10 runs are kept in memory: `again` /
-`repeat` re-runs the last command, and JARVIS can recall things like
+`repeat` re-runs the last command, and FRIDAY can recall things like
 the last IP address it printed.
 
 **Composite workflows.** `commands/workflows.py` holds commands that call
@@ -76,14 +76,14 @@ declare `ctx` receive `{"registry", "context"}`.
   need sudo and warn that they're slow.
 - `msf search <term>`, `msf info <module path>`, `msf version` —
   non-interactive via `msfconsole -x`. Interactive exploit sessions stay
-  in msfconsole itself; JARVIS finds the module, you run it.
+  in msfconsole itself; FRIDAY finds the module, you run it.
 - `burp start` / `burp status` / `burp stop` — Burp is GUI-driven, so
-  JARVIS manages its lifecycle rather than its scans.
+  FRIDAY manages its lifecycle rather than its scans.
 
 ## How it works
 
-**Adding a command = one TOOL dict** (see `jarvis.py` header for the full
-template). Restart JARVIS — nothing else changes. A file with a syntax
+**Adding a command = one TOOL dict** (see `friday.py` header for the full
+template). Restart FRIDAY — nothing else changes. A file with a syntax
 error, a bad regex, or a duplicate name is logged and skipped; it can
 never break the other commands.
 
@@ -106,7 +106,7 @@ The registry serves both brains, so the upgrade won't need restructuring.
    and log names are pattern-checked before use; raw input never reaches
    a subprocess unfiltered. `tail` can only read 4 named logs.
 6. **Audit trail** — every run (and every rejected input) goes to
-   `~/.jarvis/jarvis.log`.
+   `~/.friday/friday.log`.
 
 ## Deliberately left out
 
@@ -117,7 +117,7 @@ The registry serves both brains, so the upgrade won't need restructuring.
 
 ## Phase 2b — voice (this release)
 
-`python3 jarvis.py --voice` switches to push-to-talk: **Enter** starts
+`python3 friday.py --voice` switches to push-to-talk: **Enter** starts
 recording, **Enter** again stops it. Speech is transcribed locally by
 faster-whisper, the reply is spoken back by Piper — everything offline.
 Long outputs print in full but only the first 600 characters are spoken.
@@ -128,16 +128,16 @@ Setup (one time, on the Kali VM):
 # system libraries: PortAudio (mic/speaker) + espeak-ng (Piper phonemes)
 sudo apt install libportaudio2 espeak-ng
 
-# python packages (text mode never needs these) — or just tell JARVIS:
+# python packages (text mode never needs these) — or just tell FRIDAY:
 #   "install requirements"
 pip install -r requirements.txt
 
-python3 jarvis.py --voice
+python3 friday.py --voice
 ```
 
 First run downloads the Whisper base model (~1GB) and the Piper voice
-(~60MB) into `~/.jarvis/models/`. Use `VoiceIO(stt_model="tiny")` in
-`jarvis.py` if you want the smaller/faster model instead.
+(~60MB) into `~/.friday/models/`. Use `VoiceIO(stt_model="tiny")` in
+`friday.py` if you want the smaller/faster model instead.
 
 **Microphone in VirtualBox:** VM Settings → Audio → tick **Enable Audio
 Input**. In the guest, `arecord -l` must list a capture device; test it
@@ -146,13 +146,13 @@ input device, voice mode can't hear you — text mode is unaffected.
 
 ## Phase 3 — the brain (this release)
 
-`python3 jarvis.py --brain ollama` hands command choice to a local LLM
+`python3 friday.py --brain ollama` hands command choice to a local LLM
 (`qwen3:4b` by default). The model reads the TOOL registry through
 Ollama's native tools API and picks one command per turn; unknown tool
 names are rejected before execution. The registry is still the allowlist —
-the brain never invents commands. If Ollama isn't reachable, JARVIS falls
+the brain never invents commands. If Ollama isn't reachable, FRIDAY falls
 back to keyword matching automatically. Combine with voice:
-`python3 jarvis.py --voice --brain ollama`.
+`python3 friday.py --voice --brain ollama`.
 
 Setup (one time, on the Kali VM):
 

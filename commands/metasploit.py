@@ -3,7 +3,7 @@ Metasploit helpers — non-interactive only.
 
 msfconsole is driven with '-q -x "<commands>; exit"' so each invocation
 runs and returns. Interactive exploit sessions don't fit the
-run-and-return model, so they stay in msfconsole itself: JARVIS finds
+run-and-return model, so they stay in msfconsole itself: FRIDAY finds
 the module, you run it.
 
 The search term / module path is strictly validated — it is embedded in

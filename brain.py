@@ -1,5 +1,5 @@
 """
-JARVIS Phase 3 — the brain. A local Ollama LLM picks tools from the registry.
+FRIDAY Phase 3 — the brain. A local Ollama LLM picks tools from the registry.
 
 Uses Ollama's native /api/chat `tools` parameter (think: false — no reasoning
 overhead for tool dispatch). The model may ONLY return a registered tool
@@ -21,7 +21,7 @@ DEFAULT_MODEL = "qwen3:4b"
 DEFAULT_URL = "http://localhost:11434"
 
 SYSTEM_PROMPT = (
-    "You are JARVIS, a personal assistant running on the user's own Kali "
+    "You are FRIDAY, a personal assistant running on the user's own Kali "
     "Linux virtual machine. You act ONLY through the provided tools.\n"
     "Rules:\n"
     "- To do something, call exactly one tool per response, with its arguments.\n"

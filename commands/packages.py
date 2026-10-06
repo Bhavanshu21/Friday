@@ -35,11 +35,11 @@ def _usb():
 
 
 def _install_requirements():
-    """pip install everything JARVIS needs (voice mode deps)."""
+    """pip install everything FRIDAY needs (voice mode deps)."""
     req = Path(__file__).resolve().parent.parent / "requirements.txt"
     if not req.exists():
-        return "requirements.txt not found next to jarvis.py — can't install."
-    print("Installing JARVIS requirements — this can take a few minutes...")
+        return "requirements.txt not found next to friday.py — can't install."
+    print("Installing FRIDAY requirements — this can take a few minutes...")
     log("pip install -r requirements.txt")
     argv = [sys.executable, "-m", "pip", "install", "-r", str(req)]
     out = run(argv, timeout=900)
@@ -74,7 +74,7 @@ TOOLS = [
      "parameters": {"type": "OBJECT", "properties": {}},
      "handler": _usb},
     {"name": "install_requirements",
-     "description": ("Install JARVIS Python requirements (voice mode) via pip. "
+     "description": ("Install FRIDAY Python requirements (voice mode) via pip. "
                      "Retries with --break-system-packages on Debian/Kali."),
      "triggers": ["install requirements", "setup requirements",
                   "install dependencies", "setup dependencies",

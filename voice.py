@@ -1,8 +1,8 @@
 """
-JARVIS Phase 2b — offline voice I/O: faster-whisper (STT) + Piper (TTS).
+FRIDAY Phase 2b — offline voice I/O: faster-whisper (STT) + Piper (TTS).
 
 Push-to-talk: press Enter to start recording, press Enter again to stop.
-Models live under ~/.jarvis/models and download on first use.
+Models live under ~/.friday/models and download on first use.
 
     System deps (Kali):  sudo apt install libportaudio2 espeak-ng
     Python deps:         pip install -r requirements.txt
@@ -17,9 +17,10 @@ import sys
 import threading
 import urllib.request
 import wave
+from common import data_dir
 from pathlib import Path
 
-MODEL_DIR = Path.home() / ".jarvis" / "models"
+MODEL_DIR = Path(data_dir()) / "models"
 SAMPLE_RATE = 16000          # what Whisper expects
 PIPER_VOICE = "en_US-lessac-medium"
 PIPER_BASE_URL = ("https://huggingface.co/rhasspy/piper-voices/resolve/main/"
@@ -81,7 +82,7 @@ class VoiceIO:
 
     def _save_debug_wav(self, audio):
         """Keep the last recording so the user can hear what STT heard.
-        Only called when JARVIS_DEBUG_WAV is set — nothing is saved by default."""
+        Only called when FRIDAY_DEBUG_WAV is set — nothing is saved by default."""
         np = _require("numpy", "numpy")
         path = MODEL_DIR / "last_recording.wav"
         pcm16 = (np.clip(audio, -1.0, 1.0) * 32767).astype("<i2")
@@ -131,7 +132,7 @@ class VoiceIO:
         if audio.size < SAMPLE_RATE // 2:      # under 0.5s: accidental tap
             print("[voice] too short — ignored.")
             return ""
-        if os.environ.get("JARVIS_DEBUG_WAV"):
+        if os.environ.get("FRIDAY_DEBUG_WAV") or os.environ.get("JARVIS_DEBUG_WAV"):
             dbg = self._save_debug_wav(audio)
             print(f"[voice] transcribing... (saved {dbg})")
         else:
