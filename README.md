@@ -51,7 +51,9 @@ chmod +x ~/Friday/friday
 ln -sf ~/Friday/friday ~/.local/bin/friday
 ```
 
-Then from anywhere: `friday`, `friday --voice`, `friday --voice --brain ollama`.
+Then from anywhere: `friday` — with no flags it starts the full
+experience (`--voice --brain ollama`). Pass flags explicitly to override:
+`friday --voice`, `friday --help`, etc.
 (`~/.local/bin` is on PATH by default on Kali; if your shell says
 "command not found", run `export PATH="$HOME/.local/bin:$PATH"` and add
 that line to `~/.bashrc`.)

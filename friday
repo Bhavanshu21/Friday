@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
-# FRIDAY launcher — `friday` from anywhere. Flags pass straight through:
-#   friday --voice --brain ollama
+# FRIDAY launcher — `friday` from anywhere.
+# No flags  -> full experience: --voice --brain ollama
+# With flags -> exactly what you asked: friday --voice, friday --help, ...
+if [ $# -eq 0 ]; then
+  set -- --voice --brain ollama
+fi
 exec python3 "$(dirname "$(readlink -f "$0")")/friday.py" "$@"
