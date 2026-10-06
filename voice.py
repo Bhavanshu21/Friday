@@ -12,6 +12,7 @@ Every heavy import is lazy and raises a clear error naming what's missing.
 """
 import importlib
 import shutil
+import sys
 import threading
 import urllib.request
 import wave
@@ -160,4 +161,37 @@ class VoiceIO:
         if ch > 1:
             audio = audio.reshape(-1, ch)
         sd.play(audio, samplerate=sr)
-        sd.wait()
+        self._wait_interruptible(sd, len(audio) / sr)
+
+    @staticmethod
+    def _wait_interruptible(sd, seconds):
+        """
+        Block until playback ends. ESC stops it early.
+        Stdlib only (termios/select) — no extra dependencies.
+        """
+        import select
+        import termios
+        import time
+        import tty
+        if not sys.stdin.isatty():
+            sd.wait()
+            return
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        deadline = time.time() + seconds + 0.5
+        print("[voice] speaking... (ESC to stop)")
+        try:
+            tty.setcbreak(fd)  # single keypresses, no Enter needed
+            while time.time() < deadline:
+                r, _, _ = select.select([fd], [], [], 0.15)
+                if not r:
+                    continue
+                if sys.stdin.read(1) == "\x1b":
+                    # swallow the rest of any escape sequence (arrow keys, etc.)
+                    while select.select([fd], [], [], 0.05)[0]:
+                        sys.stdin.read(1)
+                    sd.stop()
+                    print("[voice] stopped.")
+                    return
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
