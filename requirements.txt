@@ -1,0 +1,10 @@
+# JARVIS requirements — every pip-installable dependency for all modes.
+# Voice mode: faster-whisper (offline STT), piper-tts (offline TTS),
+#   sounddevice (microphone capture; pulls in numpy).
+# Brain mode (Ollama) needs NO pip packages — install Ollama separately:
+#   curl -fsSL https://ollama.com/install.sh | sh
+#   ollama pull qwen3:4b
+# System packages for voice:  sudo apt install libportaudio2 espeak-ng
+faster-whisper>=1.0
+piper-tts>=1.2
+sounddevice>=0.4.6

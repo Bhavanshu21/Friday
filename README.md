@@ -21,7 +21,7 @@ jarvis/
 │   ├── metasploit.py  # msf version, msf search <term>, msf info <module>
 │   ├── burp.py        # burp start / status / stop (lifecycle)
 │   ├── workflows.py   # health check (composite of status+disk+memory+updates)
-│   ├── packages.py    # update, packages, usb
+│   ├── packages.py    # update, packages, usb, install requirements
 │   └── fun.py         # greeting, joke, clear
 └── README.md
 ```
@@ -127,8 +127,9 @@ Setup (one time, on the Kali VM):
 # system libraries: PortAudio (mic/speaker) + espeak-ng (Piper phonemes)
 sudo apt install libportaudio2 espeak-ng
 
-# python packages (text mode never needs these)
-pip install -r requirements-voice.txt
+# python packages (text mode never needs these) — or just tell JARVIS:
+#   "install requirements"
+pip install -r requirements.txt
 
 python3 jarvis.py --voice
 ```
