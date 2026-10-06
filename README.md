@@ -112,6 +112,35 @@ The registry serves both brains, so the upgrade won't need restructuring.
 - **No cloud LLM / API keys** — fully offline by design.
 - **No GUI/avatar** — it's a terminal tool for a VM.
 - **No undo stack yet** — arrives with the first file-changing command.
+- **No wake word** — push-to-talk only, by choice. No always-listening mic.
+
+## Phase 2b — voice (this release)
+
+`python3 jarvis.py --voice` switches to push-to-talk: **Enter** starts
+recording, **Enter** again stops it. Speech is transcribed locally by
+faster-whisper, the reply is spoken back by Piper — everything offline.
+Long outputs print in full but only the first 600 characters are spoken.
+
+Setup (one time, on the Kali VM):
+
+```bash
+# system libraries: PortAudio (mic/speaker) + espeak-ng (Piper phonemes)
+sudo apt install libportaudio2 espeak-ng
+
+# python packages (text mode never needs these)
+pip install -r requirements-voice.txt
+
+python3 jarvis.py --voice
+```
+
+First run downloads the Whisper base model (~1GB) and the Piper voice
+(~60MB) into `~/.jarvis/models/`. Use `VoiceIO(stt_model="tiny")` in
+`jarvis.py` if you want the smaller/faster model instead.
+
+**Microphone in VirtualBox:** VM Settings → Audio → tick **Enable Audio
+Input**. In the guest, `arecord -l` must list a capture device; test it
+with `arecord -d 3 test.wav && aplay test.wav`. If the guest sees no
+input device, voice mode can't hear you — text mode is unaffected.
 
 ## Roadmap
 

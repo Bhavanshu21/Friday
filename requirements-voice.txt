@@ -1,0 +1,5 @@
+# Phase 2b voice dependencies — everything else in JARVIS is stdlib-only.
+# System packages needed too:  sudo apt install libportaudio2 espeak-ng
+faster-whisper>=1.0
+piper-tts>=1.2
+sounddevice>=0.4.6

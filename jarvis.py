@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-JARVIS — Phase 2a: deeper text. Parameterized commands, short-term memory,
-composite workflows, Kali pentest tools (nmap, Metasploit, Burp Suite).
+JARVIS — Phase 2b: voice. Offline STT (faster-whisper) + TTS (Piper).
+
+Run `python3 jarvis.py --voice` for push-to-talk mode (Enter starts/stops
+recording). Text mode is unchanged and stays stdlib-only; voice.py and
+requirements-voice.txt are the only new dependencies, loaded lazily.
 
 ARCHITECTURE
     jarvis.py      this file — main loop, intent matching, dispatch, help
@@ -35,6 +38,7 @@ WHAT WAS LEFT OUT (deliberately)
 import re
 import difflib
 import inspect
+import argparse
 from pathlib import Path
 
 from common import log, get_user
@@ -151,16 +155,62 @@ def handle_recall_ip():
 
 
 def main():
+    ap = argparse.ArgumentParser(description="JARVIS — offline assistant")
+    ap.add_argument("--voice", action="store_true",
+                    help="voice mode: push-to-talk input, spoken output")
+    args = ap.parse_args()
+
+    voice = None
+    if args.voice:
+        try:
+            from voice import VoiceIO
+            voice = VoiceIO()
+            voice.check_deps()
+        except RuntimeError as e:
+            print(e)
+            print("Voice mode needs its dependencies — see README, Phase 2b.")
+            return
+        print("[voice] push-to-talk ready: Enter starts/stops recording.\n")
+
+    if voice:
+        def get_input(prompt):
+            print(prompt, end=" ", flush=True)
+            return voice.listen()
+
+        def say(text):
+            text = text or ""
+            if text:
+                print(text)
+            if text.strip():
+                # never speak walls of text — the screen keeps the full output
+                short = (text if len(text) <= 600
+                         else text[:600] + " ... (truncated for speech; "
+                                           "full output on screen)")
+                try:
+                    voice.speak(short)
+                except RuntimeError as e:
+                    print(e)
+    else:
+        def get_input(prompt):
+            return input(prompt)
+
+        def say(text):
+            if text:
+                print(text)
+
     user = get_user()
     n = len(REGISTRY)
-    print(f"JARVIS online — {n} commands loaded from commands/.")
-    print("Type 'help' to see what I can do, 'exit' to power down.\n")
+    say(f"JARVIS online — {n} commands loaded from commands/.")
+    if not voice:
+        print("Type 'help' to see what I can do, 'exit' to power down.\n")
+    else:
+        print("Say 'help' to hear what I can do, 'exit' to power down.\n")
 
     while True:
         try:
-            raw = input(f"{user} ➜ ").strip()
+            raw = get_input(f"{user} ➜ ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nPowering down. Goodbye.")
+            say("\nPowering down. Goodbye.")
             break
         if not raw:
             continue
@@ -168,22 +218,21 @@ def main():
 
         if text in ("exit", "quit", "bye", "goodbye", "power down",
                     "power off", "goodnight", "good night"):
-            print("Powering down. Goodbye.")
+            say("Powering down. Goodbye.")
             break
         if text in ("help", "what can you do", "commands", "list commands"):
-            print(cmd_help())
+            say(cmd_help())
             print()
             continue
         if text in ("again", "repeat", "do it again", "run it again",
                      "one more time"):
             result = handle_again()
-            if result:
-                print(result)
+            say(result)
             print()
             continue
         if text in ("what was the ip", "recall ip", "what ip",
                      "what was that ip"):
-            print(handle_recall_ip())
+            say(handle_recall_ip())
             print()
             continue
 
@@ -192,11 +241,11 @@ def main():
             hint = suggest(text)
             log(f"UNKNOWN: {raw!r}")
             if hint:
-                print(f"Not in my repertoire yet. Did you mean something "
-                      f"like '{hint}'? (Try 'help'.)")
+                say(f"Not in my repertoire yet. Did you mean something "
+                    f"like '{hint}'? (Try 'help'.)")
             else:
-                print("Not in my repertoire yet. I only run pre-approved "
-                      "commands — try 'help' to see them.")
+                say("Not in my repertoire yet. I only run pre-approved "
+                    "commands — try 'help' to see them.")
             print()
             continue
 
@@ -207,8 +256,7 @@ def main():
         except Exception as e:  # a command must never kill the assistant
             result = f"Something went wrong running that: {e}"
         CONTEXT.push(cmd["name"], raw, params, result)
-        if result:
-            print(result)
+        say(result)
         print()
 
 
