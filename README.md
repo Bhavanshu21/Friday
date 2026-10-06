@@ -177,8 +177,10 @@ ollama pull qwen3:4b
 ollama serve   # or: systemctl start ollama
 ```
 
-Change the model in `brain.py` (`DEFAULT_MODEL`). `qwen3:8b` is smarter
-but wants ~6GB RAM; `qwen2.5:3b` is the lighter fallback.
+Switch models at runtime with `--model` (e.g. `friday --voice --brain ollama
+--model qwen3:1.7b` after `ollama pull qwen3:1.7b`). `qwen3:1.7b` is much
+faster on CPU-only machines but dumber at picking commands; `qwen3:8b`
+is smarter but wants ~6GB RAM.
 
 **Design notes:**
 - One tool call per user turn. Tool outputs are shown to you, never fed

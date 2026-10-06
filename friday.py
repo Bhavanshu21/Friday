@@ -7,6 +7,8 @@ Ollama's native tools API and chooses one command per turn. Unknown tool
 names are rejected; the registry is still the allowlist. If Ollama isn't
 reachable, it falls back to the keyword matcher automatically.
 `python3 friday.py --voice --brain ollama` combines both.
+`python3 friday.py --brain ollama --model qwen3:1.7b` uses a smaller,
+faster model (handy on CPU-only machines).
 
 ARCHITECTURE
     friday.py      this file — main loop, intent matching, dispatch, help
@@ -162,6 +164,9 @@ def main():
                     help="voice mode: push-to-talk input, spoken output")
     ap.add_argument("--brain", choices=["keyword", "ollama"], default="keyword",
                     help="how commands are chosen (default: keyword)")
+    ap.add_argument("--model", metavar="MODEL", default=None,
+                    help="Ollama model for --brain ollama (default: qwen3:4b; "
+                         "e.g. qwen3:1.7b is much faster on CPU-only machines)")
     args = ap.parse_args()
 
     voice = None
@@ -207,8 +212,14 @@ def main():
     brain = None
     if args.brain == "ollama":
         try:
-            from brain import Brain
-            brain = Brain()
+            from brain import Brain, DEFAULT_MODEL
+            model = args.model or DEFAULT_MODEL
+            if args.model and not re.match(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$",
+                                           args.model):
+                print(f"[brain] invalid model name {args.model!r} — "
+                      f"using {DEFAULT_MODEL}.")
+                model = DEFAULT_MODEL
+            brain = Brain(model=model)
             ok, reason = brain.available()
             if not ok:
                 print(f"[brain] {reason} — keyword fallback active.")
@@ -227,6 +238,7 @@ def main():
         plain brain reply, or (None, None) when nothing matches.
         """
         if brain is not None:
+            print("[brain] thinking...")
             kind, a, b = brain.choose(text, REGISTRY, history)
             if kind == "tool":
                 return REGISTRY[a], b

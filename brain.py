@@ -67,7 +67,7 @@ def registry_to_tools(registry):
 
 class Brain:
     def __init__(self, model=DEFAULT_MODEL, base_url=DEFAULT_URL,
-                 timeout=120):
+                 timeout=300):
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -118,6 +118,9 @@ class Brain:
         messages.append({"role": "user", "content": user_text})
         payload = {"model": self.model, "messages": messages, "tools": tools,
                    "think": False, "stream": False,
+                   # keep the model warm 30 min so idle gaps don't force a
+                   # full 3.9GB reload (the "hang" on CPU-only machines)
+                   "keep_alive": "30m",
                    "options": {"temperature": 0.7, "top_p": 0.8,
                                "top_k": 20, "num_ctx": 8192}}
         try:
