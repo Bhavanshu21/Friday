@@ -11,6 +11,7 @@ Text mode never imports this file, so it stays stdlib-only and instant.
 Every heavy import is lazy and raises a clear error naming what's missing.
 """
 import importlib
+import os
 import shutil
 import sys
 import threading
@@ -79,7 +80,8 @@ class VoiceIO:
         return "".join(s.text for s in segments).strip()
 
     def _save_debug_wav(self, audio):
-        """Keep the last recording so the user can hear what STT heard."""
+        """Keep the last recording so the user can hear what STT heard.
+        Only called when JARVIS_DEBUG_WAV is set — nothing is saved by default."""
         np = _require("numpy", "numpy")
         path = MODEL_DIR / "last_recording.wav"
         pcm16 = (np.clip(audio, -1.0, 1.0) * 32767).astype("<i2")
@@ -129,8 +131,11 @@ class VoiceIO:
         if audio.size < SAMPLE_RATE // 2:      # under 0.5s: accidental tap
             print("[voice] too short — ignored.")
             return ""
-        dbg = self._save_debug_wav(audio)
-        print(f"[voice] transcribing... (saved {dbg})")
+        if os.environ.get("JARVIS_DEBUG_WAV"):
+            dbg = self._save_debug_wav(audio)
+            print(f"[voice] transcribing... (saved {dbg})")
+        else:
+            print("[voice] transcribing...")
         return self.transcribe(audio)
 
     # --------------------------------------------------------------------- TTS
