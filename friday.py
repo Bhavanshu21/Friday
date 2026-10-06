@@ -203,7 +203,6 @@ def main():
                 print(text)
 
     user = get_user()
-    n = len(REGISTRY)
 
     brain = None
     if args.brain == "ollama":
@@ -239,7 +238,7 @@ def main():
             return None, None
         return cmd, extract_params(cmd, text)
 
-    say(f"FRIDAY online — {n} commands loaded from commands/.")
+    say("Hi sir. FRIDAY online.")
     if not voice:
         print("Type 'help' to see what I can do, 'exit' to power down.\n")
     else:
