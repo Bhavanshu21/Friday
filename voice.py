@@ -12,6 +12,7 @@ Every heavy import is lazy and raises a clear error naming what's missing.
 """
 import importlib
 import os
+import re
 import shutil
 import sys
 import threading
@@ -99,10 +100,17 @@ class VoiceIO:
         Or just TYPE a command at the prompt to skip the mic entirely.
         Returns the transcribed/typed text ("" if nothing usable was said).
         """
-        typed = input("Press Enter and speak (Enter again to stop), "
-                      "or type a command... ").strip()
+        raw = input("Press Enter and speak (Enter again to stop), "
+                    "or type a command... ").strip()
+        # Stray ESC / arrow-key presses at the prompt would otherwise
+        # pollute the command (they echo as ^[). Strip escape sequences.
+        typed = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", raw)
+        typed = typed.replace("\x1b", "").strip()
         if typed:
             return typed  # text fallback — no mic needed
+        if raw:
+            return ""  # only ESC/arrow garbage: re-prompt, don't record
+        # bare Enter: fall through to mic recording
 
         sd = _require("sounddevice", "sounddevice", "libportaudio2")
         np = _require("numpy", "numpy")
