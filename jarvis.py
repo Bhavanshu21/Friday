@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-JARVIS — Phase 2b: voice. Offline STT (faster-whisper) + TTS (Piper).
+JARVIS — Phase 3: the brain. Local Ollama LLM (qwen3:4b) picks tools.
 
-Run `python3 jarvis.py --voice` for push-to-talk mode (Enter starts/stops
-recording). Text mode is unchanged and stays stdlib-only; voice.py and
-requirements-voice.txt are the only new dependencies, loaded lazily.
+`python3 jarvis.py --brain ollama` — the model reads the TOOL registry via
+Ollama's native tools API and chooses one command per turn. Unknown tool
+names are rejected; the registry is still the allowlist. If Ollama isn't
+reachable, it falls back to the keyword matcher automatically.
+`python3 jarvis.py --voice --brain ollama` combines both.
 
 ARCHITECTURE
     jarvis.py      this file — main loop, intent matching, dispatch, help
@@ -158,6 +160,8 @@ def main():
     ap = argparse.ArgumentParser(description="JARVIS — offline assistant")
     ap.add_argument("--voice", action="store_true",
                     help="voice mode: push-to-talk input, spoken output")
+    ap.add_argument("--brain", choices=["keyword", "ollama"], default="keyword",
+                    help="how commands are chosen (default: keyword)")
     args = ap.parse_args()
 
     voice = None
@@ -200,6 +204,41 @@ def main():
 
     user = get_user()
     n = len(REGISTRY)
+
+    brain = None
+    if args.brain == "ollama":
+        try:
+            from brain import Brain
+            brain = Brain()
+            ok, reason = brain.available()
+            if not ok:
+                print(f"[brain] {reason} — keyword fallback active.")
+                brain = None
+            else:
+                print(f"[brain] {brain.model} online — tool-calling mode.")
+        except Exception as e:
+            print(f"[brain] couldn't start ({e}) — keyword fallback active.")
+            brain = None
+
+    history = []  # intents only: {"role", "content"} — never tool outputs
+
+    def resolve(text):
+        """
+        Pick a command. Returns (cmd, params), ("chat", text) for a plain
+        brain reply, or (None, None) when nothing matches.
+        """
+        if brain is not None:
+            kind, a, b = brain.choose(text, REGISTRY, history)
+            if kind == "tool":
+                return REGISTRY[a], b
+            if kind == "chat":
+                return ("chat", a), None
+            # "unavailable" -> fall through to keyword matcher
+        cmd = match(text)
+        if cmd is None:
+            return None, None
+        return cmd, extract_params(cmd, text)
+
     say(f"JARVIS online — {n} commands loaded from commands/.")
     if not voice:
         print("Type 'help' to see what I can do, 'exit' to power down.\n")
@@ -236,8 +275,8 @@ def main():
             print()
             continue
 
-        cmd = match(text)
-        if cmd is None:
+        resolved, params = resolve(text)
+        if resolved is None:
             hint = suggest(text)
             log(f"UNKNOWN: {raw!r}")
             if hint:
@@ -246,16 +285,27 @@ def main():
             else:
                 say("Not in my repertoire yet. I only run pre-approved "
                     "commands — try 'help' to see them.")
+            history.append({"role": "user", "content": raw})
             print()
             continue
+        if isinstance(resolved, tuple) and resolved[0] == "chat":
+            chat_text = resolved[1]
+            say(chat_text)  # plain brain reply, no tool
+            history.append({"role": "user", "content": raw})
+            history.append({"role": "assistant", "content": chat_text})
+            print()
+            continue
+        cmd = resolved
 
-        params = extract_params(cmd, text)
         log(f"RUN: {cmd['name']}  ({raw!r})  params={params or '{}'}")
         try:
             result = dispatch(cmd, params)
         except Exception as e:  # a command must never kill the assistant
             result = f"Something went wrong running that: {e}"
         CONTEXT.push(cmd["name"], raw, params, result)
+        history.append({"role": "user", "content": raw})
+        history.append({"role": "assistant",
+                        "content": f"[ran {cmd['name']}]"})
         say(result)
         print()
 

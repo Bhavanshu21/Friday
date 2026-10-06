@@ -142,6 +142,36 @@ Input**. In the guest, `arecord -l` must list a capture device; test it
 with `arecord -d 3 test.wav && aplay test.wav`. If the guest sees no
 input device, voice mode can't hear you — text mode is unaffected.
 
+## Phase 3 — the brain (this release)
+
+`python3 jarvis.py --brain ollama` hands command choice to a local LLM
+(`qwen3:4b` by default). The model reads the TOOL registry through
+Ollama's native tools API and picks one command per turn; unknown tool
+names are rejected before execution. The registry is still the allowlist —
+the brain never invents commands. If Ollama isn't reachable, JARVIS falls
+back to keyword matching automatically. Combine with voice:
+`python3 jarvis.py --voice --brain ollama`.
+
+Setup (one time, on the Kali VM):
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen3:4b
+ollama serve   # or: systemctl start ollama
+```
+
+Change the model in `brain.py` (`DEFAULT_MODEL`). `qwen3:8b` is smarter
+but wants ~6GB RAM; `qwen2.5:3b` is the lighter fallback.
+
+**Design notes:**
+- One tool call per user turn. Tool outputs are shown to you, never fed
+  back into the model — hostile text in a log or scan result can't steer
+  the next decision (prompt-injection mitigation).
+- Conversation history keeps intents ("ran nmap_quick"), not outputs.
+  The Phase 2a context buffer (`again`, IP recall) still works underneath.
+- Every model-chosen argument still passes through each command's own
+  validation (nmap target regex, msf term whitelist, ...).
+
 ## Roadmap
 
 - **Phase 2b — voice**: faster-whisper (STT) + Piper (TTS), push-to-talk.
