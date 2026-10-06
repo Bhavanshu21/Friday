@@ -43,6 +43,18 @@ Built for your Kali VM (user `arise`).
 
 Type `help` inside to see all commands. Type `exit` to quit.
 
+### Run it as just `friday` (one time)
+
+```bash
+mkdir -p ~/.local/bin
+ln -sf ~/Friday/friday ~/.local/bin/friday
+```
+
+Then from anywhere: `friday`, `friday --voice`, `friday --voice --brain ollama`.
+(`~/.local/bin` is on PATH by default on Kali; if your shell says
+"command not found", run `export PATH="$HOME/.local/bin:$PATH"` and add
+that line to `~/.bashrc`.)
+
 ## What's new in Phase 2a
 
 **Parameterized commands.** Commands declare `arg_patterns` (regex per

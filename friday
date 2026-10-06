@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# FRIDAY launcher — `friday` from anywhere. Flags pass straight through:
+#   friday --voice --brain ollama
+exec python3 "$(dirname "$(readlink -f "$0")")/friday.py" "$@"
