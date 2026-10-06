@@ -182,6 +182,24 @@ Switch models at runtime with `--model` (e.g. `friday --voice --brain ollama
 faster on CPU-only machines but dumber at picking commands; `qwen3:8b`
 is smarter but wants ~6GB RAM.
 
+### Faster brain: run Ollama on the host PC (or any GPU box)
+
+The VM's CPU is the bottleneck. Run Ollama where the hardware is — your
+host PC — and point FRIDAY at it:
+
+1. On the host: install Ollama, set `OLLAMA_HOST=0.0.0.0`, restart it,
+   allow port 11434 through the firewall, then `ollama pull qwen3:4b`.
+2. On the VM, find the host's address: `ip route | grep default`
+   (VirtualBox NAT: usually `10.0.2.2`). Test it:
+   `curl http://10.0.2.2:11434/api/tags`
+3. Run: `friday --voice --brain ollama --brain-url http://10.0.2.2:11434`
+
+Same works for a cloud GPU pod over an SSH tunnel
+(`ssh -L 11434:localhost:11434 user@pod`, then `--brain-url
+http://localhost:11434` — stop the VM-local Ollama first to avoid a port
+clash). Voice audio never leaves the VM; only command text goes to the
+brain.
+
 **Design notes:**
 - One tool call per user turn. Tool outputs are shown to you, never fed
   back into the model — hostile text in a log or scan result can't steer

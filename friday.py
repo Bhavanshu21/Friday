@@ -167,6 +167,11 @@ def main():
     ap.add_argument("--model", metavar="MODEL", default=None,
                     help="Ollama model for --brain ollama (default: qwen3:4b; "
                          "e.g. qwen3:1.7b is much faster on CPU-only machines)")
+    ap.add_argument("--brain-url", metavar="URL", default=None,
+                    help="Ollama server for --brain ollama "
+                         "(default: http://localhost:11434; e.g. "
+                         "http://10.0.2.2:11434 to use the host PC's Ollama "
+                         "from the VM)")
     args = ap.parse_args()
 
     voice = None
@@ -212,14 +217,15 @@ def main():
     brain = None
     if args.brain == "ollama":
         try:
-            from brain import Brain, DEFAULT_MODEL
+            from brain import Brain, DEFAULT_MODEL, DEFAULT_URL
             model = args.model or DEFAULT_MODEL
             if args.model and not re.match(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$",
                                            args.model):
                 print(f"[brain] invalid model name {args.model!r} — "
                       f"using {DEFAULT_MODEL}.")
                 model = DEFAULT_MODEL
-            brain = Brain(model=model)
+            brain = Brain(model=model,
+                          base_url=args.brain_url or DEFAULT_URL)
             ok, reason = brain.available()
             if not ok:
                 print(f"[brain] {reason} — keyword fallback active.")
