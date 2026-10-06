@@ -5,7 +5,7 @@ Push-to-talk: press Enter to start recording, press Enter again to stop.
 Models live under ~/.jarvis/models and download on first use.
 
     System deps (Kali):  sudo apt install libportaudio2 espeak-ng
-    Python deps:         pip install -r requirements-voice.txt
+    Python deps:         pip install -r requirements.txt
 
 Text mode never imports this file, so it stays stdlib-only and instant.
 Every heavy import is lazy and raises a clear error naming what's missing.
@@ -65,7 +65,7 @@ class VoiceIO:
             urllib.request.urlretrieve(url, dest)
 
     # --------------------------------------------------------------------- STT
-    def transcribe(self, audio):
+    def transcribe(self, audio, language="en"):
         """Transcribe a 16kHz mono float32 numpy array. Returns text."""
         fw = _require("faster_whisper", "faster-whisper")
         if self._stt is None:
@@ -73,8 +73,21 @@ class VoiceIO:
                   f"(first run downloads the model)...")
             self._stt = fw.WhisperModel(self.stt_model, device="cpu",
                                         compute_type="int8")
-        segments, _info = self._stt.transcribe(audio, beam_size=5)
+        segments, _info = self._stt.transcribe(audio, beam_size=5,
+                                               language=language)
         return "".join(s.text for s in segments).strip()
+
+    def _save_debug_wav(self, audio):
+        """Keep the last recording so the user can hear what STT heard."""
+        np = _require("numpy", "numpy")
+        path = MODEL_DIR / "last_recording.wav"
+        pcm16 = (np.clip(audio, -1.0, 1.0) * 32767).astype("<i2")
+        with wave.open(str(path), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(SAMPLE_RATE)
+            wf.writeframes(pcm16.tobytes())
+        return path
 
     def listen(self):
         """
@@ -110,7 +123,8 @@ class VoiceIO:
         if audio.size < SAMPLE_RATE // 2:      # under 0.5s: accidental tap
             print("[voice] too short — ignored.")
             return ""
-        print("[voice] transcribing...")
+        dbg = self._save_debug_wav(audio)
+        print(f"[voice] transcribing... (saved {dbg})")
         return self.transcribe(audio)
 
     # --------------------------------------------------------------------- TTS
