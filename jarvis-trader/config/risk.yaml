@@ -1,0 +1,8 @@
+# Risk limits — the user sets these, nothing else adds limits.
+# All values are enforced by risk/manager.py; breach = halt, never silent resize.
+max_daily_loss_pct: 2.0      # halt trading for the day beyond this drawdown
+max_position_pct: 10.0       # max capital in one position
+risk_per_trade_pct: 1.0      # for risk-based sizing (Phase 2+)
+trading_hours:                # IST; signals outside are ignored
+  start: "09:20"
+  end: "15:15"
