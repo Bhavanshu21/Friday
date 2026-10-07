@@ -66,7 +66,31 @@ commands live there, no Kali tooling involved.
 
 Type `help` inside to see all commands. Type `exit` to quit.
 
-### Run it as just `friday` (one time)
+### Windows daily commands
+
+**Excel** — `remember sheet budget C:\Users\you\Documents\budget.xlsx`
+registers a nickname; then `update budget cell B5 to 108`,
+`add row to budget: 2026-10-07, Metro, 108`, `read excel budget A1:D20`.
+
+**Reminders** — `remind me in 20 minutes to stretch` pops a Windows toast
+at the time, even if FRIDAY is closed (uses Task Scheduler).
+`my reminders` lists them, `cancel reminder stretch` removes one.
+
+**Ask anything** — `what's the weather in Delhi`, `define serendipity`,
+`explain photosynthesis`. FRIDAY searches the web and explains in plain
+words (weather/word answers are direct; general questions are simplified
+by the local brain — or shown raw with a note if the brain is offline).
+
+**Gmail setup (one time)** — FRIDAY creates drafts only, never sends:
+1. `pip install google-api-python-client google-auth-oauthlib`
+2. [Google Cloud Console](https://console.cloud.google.com) → new project → enable the **Gmail API**
+3. OAuth consent screen → External → add yourself as a test user
+4. Credentials → Create Credentials → OAuth client ID → **Desktop app**
+5. Download the JSON → save as `%USERPROFILE%\.friday\gmail_credentials.json`
+6. Ask FRIDAY to draft a mail — a browser window opens once for consent,
+   then the token is cached and never asked again.
+
+### Run it as just `friday` (one time, Linux)
 
 ```bash
 mkdir -p ~/.local/bin
