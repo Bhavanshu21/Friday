@@ -40,6 +40,7 @@ WHAT WAS LEFT OUT (deliberately)
     - No undo stack yet — arrives with the first file-changing command.
 """
 import re
+import os
 import difflib
 import inspect
 import argparse
@@ -169,7 +170,8 @@ def main():
                          "e.g. qwen3:1.7b is much faster on CPU-only machines)")
     ap.add_argument("--brain-url", metavar="URL", default=None,
                     help="Ollama server for --brain ollama "
-                         "(default: http://localhost:11434; e.g. "
+                         "(default: http://localhost:11434, or the "
+                         "FRIDAY_BRAIN_URL env var if set; e.g. "
                          "http://10.0.2.2:11434 to use the host PC's Ollama "
                          "from the VM)")
     args = ap.parse_args()
@@ -225,7 +227,9 @@ def main():
                       f"using {DEFAULT_MODEL}.")
                 model = DEFAULT_MODEL
             brain = Brain(model=model,
-                          base_url=args.brain_url or DEFAULT_URL)
+                          base_url=args.brain_url
+                          or os.environ.get("FRIDAY_BRAIN_URL")
+                          or DEFAULT_URL)
             ok, reason = brain.available()
             if not ok:
                 print(f"[brain] {reason} — keyword fallback active.")
