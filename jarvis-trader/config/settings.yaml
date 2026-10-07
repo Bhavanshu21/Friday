@@ -1,0 +1,13 @@
+# Trading universe and data settings
+symbols:
+  - RELIANCE
+  - HDFCBANK
+  - INFY
+  - TCS
+  - SBIN
+exchange: NSE
+interval: FIFTEEN_MINUTE
+data_dir: data/parquet
+starting_capital: 100000
+qty_per_trade: 10        # fixed share quantity (Phase 1); risk-based sizing later
+slippage: 0.0005         # 0.05% adverse fill per side
