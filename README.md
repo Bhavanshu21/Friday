@@ -194,6 +194,14 @@ host PC — and point FRIDAY at it:
    `curl http://10.0.2.2:11434/api/tags`
 3. Run: `friday --voice --brain ollama --brain-url http://10.0.2.2:11434`
 
+To make the host brain the permanent default so bare `friday` just uses
+it, add this to `~/.bashrc` on the VM (explicit `--brain-url` still wins
+when given):
+
+```bash
+export FRIDAY_BRAIN_URL=http://10.0.2.2:11434
+```
+
 Same works for a cloud GPU pod over an SSH tunnel
 (`ssh -L 11434:localhost:11434 user@pod`, then `--brain-url
 http://localhost:11434` — stop the VM-local Ollama first to avoid a port
