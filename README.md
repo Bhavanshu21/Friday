@@ -81,6 +81,11 @@ at the time, even if FRIDAY is closed (uses Task Scheduler).
 words (weather/word answers are direct; general questions are simplified
 by the local brain — or shown raw with a note if the brain is offline).
 
+**Open things** — `remember folder dreamvirtment C:\path\to\folder`, then
+`open folder dreamvirtment` pops it in Explorer. `open excel` launches
+Excel; `open excel budget` opens that workbook. Then dictate updates:
+`update budget cell B5 to 108`, `add row to budget: 2026-10-07, Metro, 108`.
+
 **Gmail setup (one time)** — FRIDAY creates drafts only, never sends:
 1. `pip install google-api-python-client google-auth-oauthlib`
 2. [Google Cloud Console](https://console.cloud.google.com) → new project → enable the **Gmail API**
