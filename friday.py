@@ -41,6 +41,7 @@ WHAT WAS LEFT OUT (deliberately)
 """
 import re
 import os
+import sys
 import difflib
 import inspect
 import argparse
@@ -51,7 +52,10 @@ from loader import discover_commands
 from context import RunContext
 
 BASE = Path(__file__).resolve().parent
-REGISTRY, REPORT = discover_commands(BASE / "commands")
+# Platform split: Windows loads commands_win/, everything else loads commands/.
+# One repo, both platforms — the brain, voice, and dispatcher are identical.
+COMMANDS_DIR = "commands_win" if sys.platform == "win32" else "commands"
+REGISTRY, REPORT = discover_commands(BASE / COMMANDS_DIR)
 for _file, _ok, _msg in REPORT:
     if not _ok:
         print(f"[loader] {_file}: {_msg}")
