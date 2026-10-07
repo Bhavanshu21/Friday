@@ -54,15 +54,22 @@ def _validate(tool, filename):
     if not callable(handler):
         return None, f"{name}: handler not callable"
     arg_patterns = tool.get("arg_patterns", {})
+    def _ok_pat(v):
+        if isinstance(v, str):
+            return True
+        return (isinstance(v, list) and bool(v)
+                and all(isinstance(p, str) for p in v))
     if (not isinstance(arg_patterns, dict)
-            or not all(isinstance(k, str) and isinstance(v, str)
+            or not all(isinstance(k, str) and _ok_pat(v)
                        for k, v in arg_patterns.items())):
-        return None, f"{name}: arg_patterns must be a dict of name -> regex"
+        return None, (f"{name}: arg_patterns must be a dict of "
+                      "name -> regex or list of regex")
     for pat in arg_patterns.values():
-        try:
-            re.compile(pat)
-        except re.error:
-            return None, f"{name}: bad regex in arg_patterns: {pat!r}"
+        for p in (pat if isinstance(pat, list) else [pat]):
+            try:
+                re.compile(p)
+            except re.error:
+                return None, (f"{name}: bad regex in arg_patterns: {p!r}")
     return {"name": name, "description": desc.strip(), "triggers": triggers,
             "parameters": params, "handler": handler, "file": filename,
             "arg_patterns": arg_patterns}, ""
