@@ -34,7 +34,7 @@ def _require(module, pip_name, sys_pkg=None):
         return importlib.import_module(module)
     except ImportError:
         hint = f"[voice] missing '{module}'. Run:  pip install {pip_name}"
-        if sys_pkg:
+        if sys_pkg and sys.platform != "win32":
             hint += f"\n[voice] plus the system library:  sudo apt install {sys_pkg}"
         raise RuntimeError(hint)
 
@@ -53,7 +53,10 @@ class VoiceIO:
         _require("piper", "piper-tts", "espeak-ng")
         _require("sounddevice", "sounddevice", "libportaudio2")
         _require("numpy", "numpy")
-        if shutil.which("espeak-ng") is None:
+        # The espeak-ng CLI binary is only needed on Linux. The Windows
+        # piper-tts wheel bundles espeak-ng (espeakbridge.pyd + data),
+        # so there is nothing extra to install there.
+        if sys.platform != "win32" and shutil.which("espeak-ng") is None:
             raise RuntimeError("[voice] espeak-ng not found. "
                                "Run:  sudo apt install espeak-ng")
 
@@ -181,11 +184,22 @@ class VoiceIO:
     def _wait_interruptible(sd, seconds):
         """
         Block until playback ends. ESC stops it early.
-        Stdlib only (termios/select) — no extra dependencies.
+        Unix uses termios/select, Windows uses msvcrt — stdlib only.
         """
+        import time
+        if sys.platform == "win32":
+            import msvcrt
+            print("[voice] speaking... (ESC to stop)")
+            deadline = time.time() + seconds + 0.5
+            while time.time() < deadline:
+                if msvcrt.kbhit() and msvcrt.getch() == b"\x1b":
+                    sd.stop()
+                    print("[voice] stopped.")
+                    return
+                time.sleep(0.05)
+            return
         import select
         import termios
-        import time
         import tty
         if not sys.stdin.isatty():
             sd.wait()
