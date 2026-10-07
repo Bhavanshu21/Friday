@@ -89,6 +89,20 @@ def cmd_walkforward(a):
     print("aggregate OOS:", out["oos"])
 
 
+def cmd_train(a):
+    from strategy.ml_model import walkforward_ml, verdict
+    cfg = load_settings()
+    df = _load_df(a, cfg)
+    print("walk-forward ML training (this takes a few minutes)...")
+    results = walkforward_ml(df, train_days=a.train_days,
+                             test_days=a.test_days, step_days=a.step_days,
+                             capital=cfg["starting_capital"],
+                             qty=cfg["qty_per_trade"],
+                             slippage=cfg["slippage"])
+    v = verdict(results)
+    print("\nVERDICT:", v)
+
+
 def main():
     ap = argparse.ArgumentParser(description="jarvis-trader")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -114,9 +128,17 @@ def main():
     w.add_argument("--file", default=None)
     w.add_argument("--synthetic", action="store_true")
 
+    t = sub.add_parser("train")
+    t.add_argument("--symbol", default=None)
+    t.add_argument("--file", default=None)
+    t.add_argument("--synthetic", action="store_true")
+    t.add_argument("--train-days", type=int, default=180)
+    t.add_argument("--test-days", type=int, default=60)
+    t.add_argument("--step-days", type=int, default=60)
+
     a = ap.parse_args()
     {"download": cmd_download, "backtest": cmd_backtest,
-     "walkforward": cmd_walkforward}[a.cmd](a)
+     "walkforward": cmd_walkforward, "train": cmd_train}[a.cmd](a)
 
 
 if __name__ == "__main__":
