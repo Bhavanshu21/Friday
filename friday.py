@@ -92,12 +92,17 @@ def match(text):
 
 
 def extract_params(cmd, text):
-    """Fill the command's declared arg_patterns from the input text."""
+    """Fill the command's declared arg_patterns from the input text.
+    A param may declare a list of patterns; the first one that matches wins.
+    (Plain strings keep working as before.)"""
     params = {}
     for name, pattern in cmd.get("arg_patterns", {}).items():
-        m = re.search(pattern, text)
-        if m:
-            params[name] = m.group(1)
+        patterns = pattern if isinstance(pattern, list) else [pattern]
+        for pat in patterns:
+            m = re.search(pat, text)
+            if m:
+                params[name] = m.group(1)
+                break
     return params
 
 
@@ -134,8 +139,13 @@ def cmd_help():
         if cmd["name"] in ("greeting", "joke", "clear"):
             continue
         lines.append(f"  - {cmd['description']}")
-    lines.append("  (Try: 'update my system', 'nmap quick 192.168.1.1', "
-                 "'health check', 'msf search smb')")
+    if sys.platform == "win32":
+        lines.append("  (Try: 'what's the weather in Delhi', "
+                     "'remind me in 20 minutes to stretch', "
+                     "'open excel budget')")
+    else:
+        lines.append("  (Try: 'update my system', 'nmap quick 192.168.1.1', "
+                     "'health check', 'msf search smb')")
     return "\n".join(lines)
 
 
@@ -161,6 +171,15 @@ def handle_recall_ip():
     if ip:
         return f"The last IP address I showed was {ip}."
     return "I haven't shown any IP address yet this session."
+
+
+_REFUSAL_HINTS = ("can't", "cannot", "don't have", "do not have",
+                  "unable to", "no tool", "not able to", "couldn't",
+                  "won't be able")
+
+
+def _looks_like_refusal(text):
+    return any(h in (text or "").lower() for h in _REFUSAL_HINTS)
 
 
 def main():
@@ -257,6 +276,15 @@ def main():
             if kind == "tool":
                 return REGISTRY[a], b
             if kind == "chat":
+                # Safety net: the small local model sometimes insists a tool
+                # doesn't exist when it does. If the reply reads like a
+                # refusal but the keyword matcher found a genuine trigger,
+                # trust the registry over the model.
+                cmd = match(text)
+                if cmd is not None and _looks_like_refusal(a):
+                    log(f"BRAIN-OVERRIDE: {text!r} -> {cmd['name']} "
+                        f"(model refused: {a[:80]!r})")
+                    return cmd, extract_params(cmd, text)
                 return ("chat", a), None
             # "unavailable" -> fall through to keyword matcher
         cmd = match(text)
