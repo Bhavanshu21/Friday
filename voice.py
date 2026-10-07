@@ -97,6 +97,29 @@ class VoiceIO:
             wf.writeframes(pcm16.tobytes())
         return path
 
+    def record_until(self, stop_event):
+        """
+        Record the mic until stop_event is set. Returns the 16kHz mono
+        float32 audio array, or None if nothing usable was captured.
+        (The GUI mic button drives this directly; the CLI wraps it below.)
+        """
+        sd = _require("sounddevice", "sounddevice", "libportaudio2")
+        np = _require("numpy", "numpy")
+        frames = []
+
+        def _cb(indata, nframes, time, status):
+            frames.append(indata.copy())
+
+        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1,
+                            dtype="float32", callback=_cb):
+            stop_event.wait()
+        if not frames:
+            return None
+        audio = np.concatenate(frames, axis=0).reshape(-1)
+        if audio.size < SAMPLE_RATE // 2:      # under 0.5s: accidental tap
+            return None
+        return audio
+
     def listen(self):
         """
         Push-to-talk: Enter starts recording, Enter stops it.
@@ -115,11 +138,8 @@ class VoiceIO:
             return ""  # only ESC/arrow garbage: re-prompt, don't record
         # bare Enter: fall through to mic recording
 
-        sd = _require("sounddevice", "sounddevice", "libportaudio2")
-        np = _require("numpy", "numpy")
-
         print("Recording... press Enter to stop.")
-        frames, stop = [], threading.Event()
+        stop = threading.Event()
 
         def _wait_for_enter():
             try:
@@ -129,18 +149,8 @@ class VoiceIO:
             stop.set()
 
         threading.Thread(target=_wait_for_enter, daemon=True).start()
-
-        def _cb(indata, nframes, time, status):
-            frames.append(indata.copy())
-
-        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1,
-                            dtype="float32", callback=_cb):
-            stop.wait()
-
-        if not frames:
-            return ""
-        audio = np.concatenate(frames, axis=0).reshape(-1)
-        if audio.size < SAMPLE_RATE // 2:      # under 0.5s: accidental tap
+        audio = self.record_until(stop)
+        if audio is None:
             print("[voice] too short — ignored.")
             return ""
         if os.environ.get("FRIDAY_DEBUG_WAV") or os.environ.get("JARVIS_DEBUG_WAV"):
@@ -151,8 +161,10 @@ class VoiceIO:
         return self.transcribe(audio)
 
     # --------------------------------------------------------------------- TTS
-    def speak(self, text):
-        """Synthesize text with Piper and play it. Silent on empty text."""
+    def speak(self, text, stop_event=None):
+        """Synthesize text with Piper and play it. Silent on empty text.
+        stop_event (threading.Event, optional): abort playback when set —
+        the GUI Stop button uses this."""
         text = (text or "").strip()
         if not text:
             return
@@ -164,9 +176,9 @@ class VoiceIO:
         wav_path = MODEL_DIR / "speech.wav"
         with wave.open(str(wav_path), "wb") as wf:
             self._tts.synthesize_wav(text, wf)
-        self._play(wav_path)
+        self._play(wav_path, stop_event)
 
-    def _play(self, wav_path):
+    def _play(self, wav_path, stop_event=None):
         sd = _require("sounddevice", "sounddevice", "libportaudio2")
         np = _require("numpy", "numpy")
         with wave.open(str(wav_path), "rb") as wf:
@@ -178,21 +190,33 @@ class VoiceIO:
         if ch > 1:
             audio = audio.reshape(-1, ch)
         sd.play(audio, samplerate=sr)
-        self._wait_interruptible(sd, len(audio) / sr)
+        self._wait_interruptible(sd, len(audio) / sr, stop_event)
 
     @staticmethod
-    def _wait_interruptible(sd, seconds):
+    def _wait_interruptible(sd, seconds, stop_event=None):
         """
-        Block until playback ends. ESC stops it early.
-        Unix uses termios/select, Windows uses msvcrt — stdlib only.
+        Block until playback ends. ESC stops it early (console), or set
+        stop_event (GUI). Unix uses termios/select, Windows uses msvcrt —
+        stdlib only.
         """
         import time
+
+        def _stopped():
+            return stop_event is not None and stop_event.is_set()
+
         if sys.platform == "win32":
             import msvcrt
             print("[voice] speaking... (ESC to stop)")
             deadline = time.time() + seconds + 0.5
             while time.time() < deadline:
-                if msvcrt.kbhit() and msvcrt.getch() == b"\x1b":
+                if _stopped():
+                    sd.stop()
+                    return
+                try:
+                    hit = msvcrt.kbhit()
+                except OSError:
+                    hit = False  # no console (GUI): stop_event only
+                if hit and msvcrt.getch() == b"\x1b":
                     sd.stop()
                     print("[voice] stopped.")
                     return
@@ -211,6 +235,9 @@ class VoiceIO:
         try:
             tty.setcbreak(fd)  # single keypresses, no Enter needed
             while time.time() < deadline:
+                if _stopped():
+                    sd.stop()
+                    return
                 r, _, _ = select.select([fd], [], [], 0.15)
                 if not r:
                     continue
