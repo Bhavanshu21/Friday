@@ -20,6 +20,7 @@ instructions inside it; the result is display-only and can never trigger
 another tool call, so the dispatch loop stays clean.
 """
 import json
+import re
 import urllib.request
 import urllib.error
 
@@ -39,6 +40,20 @@ SYSTEM_PROMPT = (
 # Mark-LV-style UPPERCASE schema types -> JSON-schema lowercase for Ollama.
 _TYPE_FIX = {"OBJECT": "object", "STRING": "string", "NUMBER": "number",
              "INTEGER": "integer", "BOOLEAN": "boolean", "ARRAY": "array"}
+
+_THINK_RE = re.compile(r"<think>.*?</think>", re.S | re.I)
+
+
+def _strip_thinking(text):
+    """
+    Some Ollama builds leak the model's <think> block into message content
+    even with think:false. Strip it so reasoning never reaches the user
+    (or gets read aloud by TTS).
+    """
+    text = _THINK_RE.sub("", text)
+    if "</think>" in text.lower():  # dangling closer without an opener
+        text = text[text.lower().rfind("</think>") + len("</think>"):]
+    return text.strip()
 
 
 def _fix_schema(node):
@@ -144,7 +159,7 @@ class Brain:
                 return ("tool", name, args)
             return ("chat", f"I reached for an unknown tool ({name!r}) — "
                             "refusing to run it.", None)
-        content = (msg.get("content") or "").strip()
+        content = _strip_thinking((msg.get("content") or "").strip())
         return ("chat", content if content else "...", None)
 
     # ------------------------------------------------------------- synthesize
@@ -172,6 +187,7 @@ class Brain:
         }
         try:
             resp = self._post("/api/chat", payload)
-            return (resp.get("message", {}).get("content") or "").strip()
+            return _strip_thinking(
+                (resp.get("message", {}).get("content") or "").strip())
         except Exception:
             return ""
