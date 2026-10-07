@@ -86,6 +86,28 @@ by the local brain — or shown raw with a note if the brain is offline).
 Excel; `open excel budget` opens that workbook. Then dictate updates:
 `update budget cell B5 to 108`, `add row to budget: 2026-10-07, Metro, 108`.
 
+### Graphical HUD (Tony Stark mode)
+
+`friday_gui.py` — same engine (all 18 commands, same brain, same voice),
+new face: a live arc-reactor visualizer (pulses idle, flares while
+listening, spins while thinking, equalizer while speaking), a transcript,
+a text box, and a mic button. Needs nothing new — tkinter ships with
+Python.
+
+```powershell
+.\friday_gui.bat
+```
+
+Desktop shortcut (run from inside the Friday folder):
+
+```powershell
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut("$HOME\Desktop\FRIDAY HUD.lnk")
+$Shortcut.TargetPath = "$PWD\friday_gui.bat"
+$Shortcut.WorkingDirectory = "$PWD"
+$Shortcut.Save()
+```
+
 **Gmail setup (one time)** — FRIDAY creates drafts only, never sends:
 1. `pip install google-api-python-client google-auth-oauthlib`
 2. [Google Cloud Console](https://console.cloud.google.com) → new project → enable the **Gmail API**
