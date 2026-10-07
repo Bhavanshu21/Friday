@@ -43,6 +43,29 @@ Built for your Kali VM (user `arise`).
 
 Type `help` inside to see all commands. Type `exit` to quit.
 
+## Run it on Windows (native, no VM)
+
+On Windows FRIDAY loads `commands_win/` instead of `commands/` — everyday
+commands live there, no Kali tooling involved.
+
+1. Install Python 3 from python.org (tick **Add python.exe to PATH**).
+2. Clone the repo: `git clone https://github.com/Bhavanshu21/Friday.git`
+3. Install voice dependencies (one time):
+   ```powershell
+   cd Friday
+   pip install -r requirements.txt
+   ```
+4. Make sure Ollama is running on the PC (it serves on `localhost:11434`
+   by default — no `--brain-url` needed for local use).
+5. Run it: double-click `friday.bat`, or from a terminal:
+   ```powershell
+   .\friday.bat
+   ```
+   Bare run = voice + Ollama brain, same as the Linux launcher.
+   `friday.bat --help` etc. override the defaults.
+
+Type `help` inside to see all commands. Type `exit` to quit.
+
 ### Run it as just `friday` (one time)
 
 ```bash
