@@ -25,6 +25,9 @@ python main.py backtest --synthetic --strategy donchian_breakout
 
 # 4. Walk-forward validation (out-of-sample honesty check)
 python main.py walkforward --file data/parquet/RELIANCE_15m.parquet --strategy engulfing_rsi
+
+# 5. Train the ML model (walk-forward; promotes only on OOS evidence)
+python main.py train --file data/parquet/RELIANCE_15m.parquet
 ```
 
 ## Layout
