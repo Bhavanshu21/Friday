@@ -80,7 +80,8 @@ def discover_commands(commands_dir):
         if path.name.startswith("_") or path.name == "__init__.py":
             continue
         try:
-            mod_name = f"commands.{path.stem}"
+            pkg = commands_dir.name.replace("-", "_")
+            mod_name = f"{pkg}.{path.stem}"
             module = sys.modules.get(mod_name)
             if module is None:
                 spec = importlib.util.spec_from_file_location(mod_name, path)
